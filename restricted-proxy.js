@@ -1,215 +1,312 @@
 const http = require('http');
 const https = require('https');
-const url = require('url');
+const { URL } = require('url');
 
-// Only allowed domain
-const ALLOWED_DOMAIN = 'startmyeducation.net';
-const ALLOWED_DOMAINS = [ALLOWED_DOMAIN, `www.${ALLOWED_DOMAIN}`];
+const PROXY_NAME = 'old age';
+const PROXY_TAGLINE = 'The overpowered proxy for anything on the internet';
+const PORT = process.env.PORT || 3000;
 
-const server = http.createServer((req, res) => {
-  // Home page
-  if (req.url === '/' || req.url === '') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(`
-      <!DOCTYPE html>
-      <html>
+function renderHome(res) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
       <head>
-        <title>Start My Education - Proxy</title>
+        <title>${PROXY_NAME}</title>
+        <meta charset="utf-8" />
         <style>
+          :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --card: #1f2937;
+            --accent: #8b5cf6;
+            --accent-2: #22d3ee;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --danger: #f87171;
+          }
+
+          * { box-sizing: border-box; }
           body {
+            margin: 0;
+            min-height: 100vh;
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 48%, #020617 100%);
+            color: var(--text);
+            display: grid;
+            place-items: center;
           }
-          .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+          .shell {
+            width: min(920px, 92vw);
+            background: rgba(17, 24, 39, 0.9);
+            border: 1px solid rgba(139, 92, 246, 0.45);
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.18);
+            border-radius: 18px;
+            padding: 32px;
           }
-          h1 { color: #333; }
-          .info {
-            background-color: #e8f4f8;
-            padding: 15px;
-            border-left: 4px solid #2196F3;
-            margin: 20px 0;
+
+          h1 {
+            margin: 0 0 10px;
+            font-size: clamp(2rem, 4vw, 3rem);
+            letter-spacing: 0.05em;
+            color: var(--accent-2);
           }
-          a {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 10px 20px;
-            background-color: #2196F3;
+
+          .tagline {
+            margin: 0 0 24px;
+            color: var(--muted);
+            font-size: 1.08rem;
+          }
+
+          .form-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+          }
+
+          input {
+            flex: 1 1 520px;
+            min-width: 200px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text);
+            font-size: 1rem;
+          }
+
+          button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
             color: white;
-            text-decoration: none;
-            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 1rem;
           }
-          a:hover {
-            background-color: #1976D2;
+
+          .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-top: 16px;
+          }
+
+          .card {
+            background: rgba(31, 41, 55, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 14px 18px;
+          }
+
+          .card strong { display: block; margin-bottom: 6px; color: #c4b5fd; }
+          code {
+            background: rgba(15, 23, 42, 0.8);
+            color: #f9fafb;
+            border-radius: 8px;
+            padding: 2px 7px;
           }
         </style>
       </head>
       <body>
-        <div class="container">
-          <h1>🎓 Start My Education Proxy</h1>
-          <div class="info">
-            <strong>This proxy only allows access to startmyeducation.net</strong>
+        <div class="shell">
+          <h1>${PROXY_NAME}</h1>
+          <p class="tagline">${PROXY_TAGLINE}</p>
+
+          <form id="proxyForm" method="GET" action="/">
+            <div class="form-wrap">
+              <input
+                id="targetUrl"
+                name="url"
+                type="text"
+                placeholder="https://example.com"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button type="submit">Open</button>
+            </div>
+          </form>
+
+          <div class="cards">
+            <div class="card">
+              <strong>Pattern</strong>
+              <code>/https://example.com/path</code>
+            </div>
+            <div class="card">
+              <strong>Query</strong>
+              <code>/?url=https://example.com/path</code>
+            </div>
+            <div class="card">
+              <strong>Methods</strong>
+              <code>GET, POST, PUT, PATCH, DELETE</code>
+            </div>
           </div>
-          <p>Click the button below to access Start My Education:</p>
-          <a href="/https://startmyeducation.net">Access startmyeducation.net</a>
         </div>
       </body>
-      </html>
-    `);
-    return;
+    </html>
+  `;
+
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(html);
+}
+
+function renderError(res, title, message, details = '') {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: #f9fafb;
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+          }
+          .box {
+            width: min(680px, 90vw);
+            background: #1f2937;
+            border-left: 5px solid #f87171;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          }
+          h1 { margin-top: 0; color: #fca5a5; }
+          p { line-height: 1.5; }
+          .muted { color: #cbd5e1; }
+          a {
+            color: #67e8f9;
+            text-decoration: none;
+            font-weight: 700;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="box">
+          <h1>${title}</h1>
+          <p>${message}</p>
+          <p class="muted">${details}</p>
+          <p><a href="/">return to ${PROXY_NAME}</a></p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(html);
+}
+
+function sanitizeTarget(rawInput) {
+  if (!rawInput || typeof rawInput !== 'string') {
+    throw new Error('No target URL supplied.');
   }
 
-  // Extract target URL
-  let targetUrl = decodeURIComponent(req.url.slice(1));
-
-  if (!targetUrl) {
-    res.writeHead(400, { 'Content-Type': 'text/html' });
-    res.end('<h1>Error</h1><p>No URL provided</p>');
-    return;
+  let cleaned = decodeURIComponent(rawInput.trim());
+  if (!cleaned) {
+    throw new Error('No target URL supplied.');
   }
 
-  // Ensure protocol
-  if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-    targetUrl = 'https://' + targetUrl;
+  if (!/^https?:\/\//i.test(cleaned)) {
+    cleaned = `https://${cleaned}`;
   }
 
-  try {
-    const parsedUrl = url.parse(targetUrl);
-    const hostname = parsedUrl.hostname;
-
-    // Verify domain is allowed
-    if (!ALLOWED_DOMAINS.includes(hostname)) {
-      res.writeHead(403, { 'Content-Type': 'text/html' });
-      res.end(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Access Denied</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              max-width: 600px;
-              margin: 50px auto;
-              padding: 20px;
-            }
-            .error {
-              background-color: #ffebee;
-              padding: 20px;
-              border-left: 4px solid #f44336;
-              border-radius: 4px;
-            }
-            h1 { color: #f44336; }
-            a {
-              display: inline-block;
-              margin-top: 15px;
-              padding: 10px 20px;
-              background-color: #2196F3;
-              color: white;
-              text-decoration: none;
-              border-radius: 4px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="error">
-            <h1>❌ Access Denied</h1>
-            <p>This proxy only allows access to <strong>${ALLOWED_DOMAIN}</strong></p>
-            <p>You tried to access: <strong>${hostname}</strong></p>
-            <a href="/">Return to Home</a>
-          </div>
-        </body>
-        </html>
-      `);
-      return;
-    }
-
-    // Proxy request to allowed domain
-    proxyRequest(targetUrl, req, res);
-  } catch (err) {
-    res.writeHead(400, { 'Content-Type': 'text/plain' });
-    res.end('Invalid URL: ' + err.message);
+  const url = new URL(cleaned);
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('Only http and https targets are supported.');
   }
-});
+
+  return url;
+}
 
 function proxyRequest(targetUrl, req, res) {
-  const parsedUrl = url.parse(targetUrl);
-  const protocol = parsedUrl.protocol === 'https:' ? https : http;
+  const target = new URL(targetUrl);
+  const transport = target.protocol === 'https:' ? https : http;
+
+  const headers = { ...req.headers };
+  delete headers.host;
+  delete headers['content-length'];
+  delete headers.connection;
+  headers['x-forwarded-for'] = [headers['x-forwarded-for'], req.socket.remoteAddress].filter(Boolean).join(', ');
+  headers['x-forwarded-proto'] = target.protocol.replace(':', '');
+  headers['x-forwarded-host'] = target.host;
 
   const options = {
-    hostname: parsedUrl.hostname,
-    port: parsedUrl.port,
-    path: parsedUrl.path || '/',
+    hostname: target.hostname,
+    port: target.port || (target.protocol === 'https:' ? 443 : 80),
+    path: `${target.pathname}${target.search}${target.hash}`,
     method: req.method,
-    headers: {
-      ...req.headers,
-      host: parsedUrl.hostname
-    },
-    timeout: 15000
+    headers,
+    timeout: 30000
   };
 
-  // Remove problematic headers
-  delete options.headers['content-length'];
-
-  const proxyReq = protocol.request(options, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+  const proxyReq = transport.request(options, (proxyRes) => {
+    const responseHeaders = { ...proxyRes.headers };
+    delete responseHeaders['transfer-encoding'];
+    res.writeHead(proxyRes.statusCode, responseHeaders);
     proxyRes.pipe(res);
   });
 
   proxyReq.on('error', (err) => {
-    res.writeHead(502, { 'Content-Type': 'text/html' });
+    res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(`
       <!DOCTYPE html>
       <html>
-      <head>
-        <title>Proxy Error</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-          }
-          .error {
-            background-color: #ffebee;
-            padding: 20px;
-            border-left: 4px solid #f44336;
-            border-radius: 4px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="error">
-          <h1>⚠️ Proxy Error</h1>
+        <head><title>Proxy Error</title></head>
+        <body style="font-family:Arial,sans-serif; background:#111827; color:#f9fafb; padding:32px;">
+          <h1>Proxy Error</h1>
           <p>${err.message}</p>
-          <a href="/">Return to Home</a>
-        </div>
-      </body>
+          <p><a href="/" style="color:#67e8f9;">back to ${PROXY_NAME}</a></p>
+        </body>
       </html>
     `);
   });
 
   proxyReq.on('timeout', () => {
-    proxyReq.destroy();
-    res.writeHead(504, { 'Content-Type': 'text/html' });
-    res.end('<h1>Gateway Timeout</h1><p>The request took too long to complete.</p>');
+    proxyReq.destroy(new Error('Gateway timed out'));
   });
 
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    req.pipe(proxyReq);
-  } else {
+  if (['GET', 'HEAD'].includes(req.method)) {
     proxyReq.end();
+  } else {
+    req.pipe(proxyReq);
   }
 }
 
-const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+  if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'PUT' && req.method !== 'PATCH' && req.method !== 'DELETE' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+    renderError(res, 'Method not allowed', 'This proxy accepts standard HTTP methods, but not that one.', `Method: ${req.method}`);
+    return;
+  }
+
+  const parsedUrl = new URL(req.url, 'http://localhost');
+
+  if (parsedUrl.pathname === '/' && !parsedUrl.searchParams.has('url')) {
+    renderHome(res);
+    return;
+  }
+
+  let targetValue = parsedUrl.searchParams.get('url');
+
+  if (!targetValue) {
+    const rawPath = parsedUrl.pathname.replace(/^\//, '');
+    targetValue = rawPath || '';
+  }
+
+  try {
+    const target = sanitizeTarget(targetValue);
+    proxyRequest(target.toString(), req, res);
+  } catch (err) {
+    renderError(res, 'Invalid proxy target', 'The target URL was malformed or unsupported.', err.message || 'Unknown error');
+  }
+});
+
 server.listen(PORT, () => {
-  console.log(`✅ Restricted proxy running on http://localhost:${PORT}`);
-  console.log(`📝 Only allows access to: ${ALLOWED_DOMAIN}`);
-  console.log(`🔗 Usage: http://localhost:${PORT}`);
+  console.log(`✅ ${PROXY_NAME} is listening on http://localhost:${PORT}`);
+  console.log('💥 Example: http://localhost:3000/?url=https://example.com');
+  console.log('🧠 Alternative: http://localhost:3000/https://example.com');
 });
